@@ -38,8 +38,8 @@ class ContentTransformer extends TransformerAbstract
             'body' => (string) $content->body,
             'status' => (string) $content->status,
             'view_count' => (string) $content->view_count,
-            'like' => (string) $content->like,
-            'category' => $content->category,
+            'category_id' => $content->category == null ? null : $content->category->id,
+            'category_name' => $content->category == null ? null : $content->category->name,
             'tags' => $content->tags,
             'slug' => (string) $content->slug,
         ];

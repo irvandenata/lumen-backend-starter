@@ -14,7 +14,10 @@ use Illuminate\Support\Str;
 
 class TagController extends Controller
 {
-
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['login']]);
+    }
     function validateRequest($request)
     {
         $rules =
@@ -36,15 +39,14 @@ class TagController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $data = new Tag();
-        $paginator = $data->paginate(5);
-        $datas = QueryBuilder::for($data->query())
-            ->allowedFilters(['name'])
-            ->paginate(5)
-            ->appends(request()->query())->get();
-        return Fractal::collection($datas, TagTransformer::class)
+        $paginator = $data->paginate($request->query("perPage"));
+        $categories = QueryBuilder::for($data->query())
+            ->allowedFilters(['name', 'perPage'])->get();
+
+        return Fractal::collection($categories, TagTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->paginateWith(new IlluminatePaginatorAdapter($paginator))
             ->respond(200);

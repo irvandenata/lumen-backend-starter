@@ -17,13 +17,11 @@ class CreateContentsTable extends Migration
             $table->id();
             $table->string('title');
             $table->longText('body')->nullable();
-            $table->string('slug');
-            $table->integer('view_count');
-            $table->integer('like');
-            $table->boolean('status');
-            $table->unsignedBigInteger('category_id');
+            $table->string('slug')->default("nothing");
+            $table->bigInteger('view_count')->default(0);
+            $table->boolean('status')->default(0);
+            $table->unsignedBigInteger('category_id')->nullable();
             $table->timestamps();
-
             $table->foreign('category_id')->references('id')->on('categories')->onDelete('CASCADE')->onUpdate('CASCADE');
         });
     }

@@ -47,12 +47,13 @@ class ContentController extends Controller
      */
     public function index(Request $request)
     {
+
         $data = new Content();
         $paginator = $data->paginate($request->query("perPage"));
-        $datas = QueryBuilder::for($data->query())
-            ->allowedFilters(['name'])
-            ->appends(request()->query());
-        return Fractal::collection($datas, ContentTransformer::class)
+        $categories = QueryBuilder::for($data->query())
+            ->allowedFilters(['perPage'])->get();
+
+        return Fractal::collection($categories, ContentTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->paginateWith(new IlluminatePaginatorAdapter($paginator))
             ->respond(200);
@@ -64,22 +65,25 @@ class ContentController extends Controller
      *  @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function create(Request $request)
+    public function create()
     {
 
-        $this->validateRequest($request);
+        // $this->validateRequest($request);
         $data = new Content();
-        DB::transaction(function () use ($request, $data) {
-            $data->title = $request->title;
-            $data->body = $request->body;
-            $data->view_count = 0;
-            $data->like = 0;
-            $data->status = $request->status;
-            $data->category_id = $request->category_id;
-            $data->slug = $request->slug;
+        DB::transaction(function () use ($data) {
+            $data->title = "Notitle";
+            // $data->body = $request->body;
+            // $data->view_count = 0;
+
+            // $data->status = $request->status;
+            // $data->category_id = $request->category_id;
             $data->save();
-            $data->tags()->attach($request->tag);
+
+            // $data->tags()->attach($request->tag);
         });
+        $data->slug = $data->id . "-" . $data->title;
+        $data->save();
+
         return fractal($data, ContentTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->respond(201);
@@ -93,8 +97,21 @@ class ContentController extends Controller
     public function show($slug)
     {
         $data = Content::where("slug", $slug)->first();
+
         if ($data == null)
             return response()->json(["message" => "not found", "status" => 404]);
+        $data->view_count++;
+        $data->save();
+        return fractal($data, ContentTransformer::class)
+            ->serializeWith(new JsonApiSerializer())
+            ->respond(200);
+    }
+
+
+
+    public function view($slug)
+    {
+        $data = Content::where("slug", $slug)->first();
         return fractal($data, ContentTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->respond(200);
@@ -106,19 +123,29 @@ class ContentController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+
     public function update(Request $request, $slug)
     {
         $this->validateRequest($request);
+        $tags = $request->tags;
+        $request->request->remove('tags');
+        $request->request->remove('category_name');
         $data = Content::where("slug", "=", $slug)->first();
         if ($data == null)
             return response()->json(["message" => "not found", "status" => 404]);
-        $data->name = $request->name;
-        $data->slug = $request->slug;
+        foreach ($request->request as $key => $value) {
+            $data[$key] = $value;
+        }
         $data->save();
+
+        $data->tags()->detach();
+        $data->tags()->attach($tags);
         return fractal($data, ContentTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->respond(200);
     }
+
+
 
     /**
      * Function for delete content

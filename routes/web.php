@@ -37,7 +37,10 @@ $router->delete('/tag/{slug}', 'TagController@delete');
 
 $router->get('/contents', 'ContentController@index');
 $router->post('/content', 'ContentController@create');
-$router->get('/content/{slug}', 'ContentController@show');
+$router->get('/content/{slug}', 'ContentController@get');
+$router->get('/contents/{slug}', 'ContentController@view');
+$router->patch('/contentfirst/{id}', 'ContentController@updateFirst');
+$router->put('/contentfirst/{id}', 'ContentController@updateFirst');
 $router->patch('/content/{slug}', 'ContentController@update');
 $router->put('/content/{slug}', 'ContentController@update');
 $router->delete('/content/{slug}', 'ContentController@delete');
