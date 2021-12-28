@@ -40,4 +40,14 @@ class User extends Model implements JWTSubject, AuthenticatableContract, Authori
     {
         return [];
     }
+
+    public function sosmeds()
+    {
+        return $this->hasMany(SocialMedia::class);
+    }
+
+    public function files()
+    {
+        return $this->morphMany(File::class, 'fileable');
+    }
 }

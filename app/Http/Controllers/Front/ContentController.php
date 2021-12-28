@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Content;
-use App\Transformers\ContentTransformer;
+use App\Transformers\ContentFrontTransformer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
@@ -20,26 +21,26 @@ class ContentController extends Controller
      *  @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    function validateRequest($request)
-    {
-        $rules =
-            [
-                "title" => "required|min:1",
-                'image' => 'image:jpeg,png,jpg,gif,svg|max:2048',
-            ];
-        $this->validate($request, $rules);
-        $query = Content::where("title", $request->title);
-        $validate = $query->get();
-        if ($validate->count() > 0) {
-            $add = $query->latest()->first()->id;
-            $slug = Str::slug($request->title, '-') . "-" . ($validate->count() + $add);
-        } else
-            $slug =  Str::slug($request->title, '-');
+    // function validateRequest($request)
+    // {
+    //     $rules =
+    //         [
+    //             "title" => "required|min:1",
+    //             'image' => 'image:jpeg,png,jpg,gif,svg|max:2048',
+    //         ];
+    //     $this->validate($request, $rules);
+    //     $query = Content::where("title", $request->title);
+    //     $validate = $query->get();
+    //     if ($validate->count() > 0) {
+    //         $add = $query->latest()->first()->id;
+    //         $slug = Str::slug($request->title, '-') . "-" . ($validate->count() + $add);
+    //     } else
+    //         $slug =  Str::slug($request->title, '-');
 
-        $request->request->add([
-            'slug' => $slug,
-        ]);
-    }
+    //     $request->request->add([
+    //         'slug' => $slug,
+    //     ]);
+    // }
 
     /**
      * Function for show all content
@@ -49,15 +50,31 @@ class ContentController extends Controller
     {
 
         $data = new Content();
-        $paginator = $data->paginate($request->query("perPage"));
-        $categories = QueryBuilder::for($data->query())
-            ->allowedFilters(['perPage'])->get();
 
-        return Fractal::collection($categories, ContentTransformer::class)
+        $paginator = $data->paginate($request->query("perPage"));
+        $contents = QueryBuilder::for($data->query(""))
+            ->allowedFilters('category_id')->get();
+
+        return Fractal::collection($contents, ContentTransformer::class)
             ->serializeWith(new JsonApiSerializer())
             ->paginateWith(new IlluminatePaginatorAdapter($paginator))
             ->respond(200);
     }
+
+
+    public function showByCategory(Request $request)
+    {
+        $data = new Category();
+        $paginator = $data->paginate($request->query("perPage"));
+        $contents = QueryBuilder::for($data->query(""))
+            ->allowedFilters('slug')->first();
+
+        return Fractal::collection($contents->contents, ContentFrontTransformer::class)
+            ->serializeWith(new JsonApiSerializer())
+            ->paginateWith(new IlluminatePaginatorAdapter($paginator))
+            ->respond(200);
+    }
+
 
 
     /**
@@ -106,6 +123,16 @@ class ContentController extends Controller
             ->serializeWith(new JsonApiSerializer())
             ->respond(200);
     }
+    public function search($slug)
+    {
+        $data = Content::where("slug", $slug)->get();
+
+        if ($data == null)
+            return response()->json(["message" => "not found", "status" => 404]);
+        return fractal($data, ContentTransformer::class)
+            ->serializeWith(new JsonApiSerializer())
+            ->respond(200);
+    }
 
 
 
@@ -124,26 +151,6 @@ class ContentController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function update(Request $request, $slug)
-    {
-        $this->validateRequest($request);
-        $tags = $request->tags;
-        $request->request->remove('tags');
-        $request->request->remove('category_name');
-        $data = Content::where("slug", "=", $slug)->first();
-        if ($data == null)
-            return response()->json(["message" => "not found", "status" => 404]);
-        foreach ($request->request as $key => $value) {
-            $data[$key] = $value;
-        }
-        $data->save();
-
-        $data->tags()->detach();
-        $data->tags()->attach($tags);
-        return fractal($data, ContentTransformer::class)
-            ->serializeWith(new JsonApiSerializer())
-            ->respond(200);
-    }
 
 
 
