@@ -17,7 +17,7 @@
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
-$router->group(['prefix' => 'api'], function () use ($router) {
+$router->group([], function () use ($router) {
 
     $router->post('/login', 'Auth\AuthController@login');
     $router->get('/logout', 'Auth\AuthController@logout');
